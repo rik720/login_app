@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Face Login</title>
+</head>
+<body>
+
+<h2>Face Login</h2>
+
+<button onclick="startCamera()">Open Camera</button><br><br>
+
+<video id="video" autoplay playsinline width="320"></video><br><br>
+
+<button onclick="capture()">Capture & Login</button>
+
+<p id="status"></p>
+
+<script>
+const video = document.getElementById("video");
+const status = document.getElementById("status");
+
+function startCamera() {
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      video.srcObject = stream;
+      status.innerText = "Camera started";
+    })
+    .catch(err => {
+      status.innerText = "Camera error: " + err;
+    });
+}
+
+function capture() {
+  if (video.videoWidth === 0) {
+    status.innerText = "Camera not ready yet";
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+
+  status.innerText = "Image captured, sending to server...";
+
+  fetch("/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image: canvas.toDataURL("image/jpeg")
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    console.log(data);
+    if (data.success) {
+      window.location.href = "/dashboard";
+    } else {
+      status.innerText = "Face not matched / No face detected";
+    }
+  })
+  .catch(err => {
+    status.innerText = "Fetch error: " + err;
+  });
+}
+</script>
+
+</body>
+</html>
